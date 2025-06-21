@@ -6,7 +6,11 @@ from itertools import product
 from collections import defaultdict
 # Importa la función renombrada desde el módulo tesauro_expanded
 from .tesauro_expanded import query_unesco_thesaurus 
-nltk.data.path.append('./nltk_data')
+import os
+
+# Ruta absoluta a la carpeta nltk_data en la raíz del proyecto
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+nltk.data.path.append(os.path.join(BASE_DIR, 'nltk_data'))
 
 # Palabras vacías (stopwords) globales y puntuación para español
 STOP_WORDS = set(nltk.corpus.stopwords.words('spanish') + list(string.punctuation))

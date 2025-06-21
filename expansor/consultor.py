@@ -6,7 +6,11 @@ import string
 import unicodedata
 import nltk
 from nltk.tokenize import word_tokenize
-nltk.data.path.append('./nltk_data')
+import os
+
+# Ruta absoluta a la carpeta nltk_data en la raíz del proyecto
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+nltk.data.path.append(os.path.join(BASE_DIR, 'nltk_data'))
 
 
 # --- Configuración de la API ---
