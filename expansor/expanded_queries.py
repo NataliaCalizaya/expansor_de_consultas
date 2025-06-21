@@ -74,7 +74,7 @@ def generate_expanded_queries(original_query, stop_words=STOP_WORDS, max_results
     """
     # Tokenizar la consulta original y filtrar palabras vacías y tokens no alfabéticos
     tokens = [
-        word.lower() for word in word_tokenize(original_query, language='spanish')
+        word.lower() for word in word_tokenize(original_query)
         if word.lower() not in stop_words and word.isalpha()
     ]
 
@@ -87,7 +87,7 @@ def generate_expanded_queries(original_query, stop_words=STOP_WORDS, max_results
         synonyms_map[token] = list(set(synonyms_map[token])) # Asegurar unicidad
 
     # Preparar palabras para la combinación: palabras originales más sus sinónimos
-    original_query_tokens = word_tokenize(original_query, language='spanish')
+    original_query_tokens = word_tokenize(original_query)
     words_for_combination = []
     for word in original_query_tokens:
         lower = word.lower()
