@@ -10,7 +10,7 @@ import unicodedata
 
 # --- Funciones de utilidad ---
 
-def normalize_text(text: str) -> str:
+def normalize_text(text):
     """
     Normaliza el texto eliminando acentos, convirtiéndolo a mayúsculas y eliminando espacios en blanco.
     """
@@ -19,7 +19,7 @@ def normalize_text(text: str) -> str:
 
 # --- Función de consulta del Tesauro ---
 
-def query_unesco_thesaurus(term: str):
+def query_unesco_thesaurus(term):
     """
     Consulta el sitio web del tesauro de la UNESCO para un término dado y encontrar conceptos relacionados.
     Utiliza Selenium para navegar por el sitio web dinámico y BeautifulSoup para analizar el contenido.

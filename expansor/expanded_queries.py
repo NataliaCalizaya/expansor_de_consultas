@@ -6,26 +6,7 @@ from itertools import product
 from collections import defaultdict
 # Importa la función renombrada desde el módulo tesauro_expanded
 from .tesauro_expanded import query_unesco_thesaurus 
-
-# --- Gestión de recursos NLTK ---
-
-def download_nltk_resources():
-    """Descarga los recursos esenciales de NLTK (punkt, wordnet, stopwords) si no están ya presentes."""
-    resources = {
-        'punkt': 'tokenizers/punkt',
-        'wordnet': 'corpora/wordnet',
-        'stopwords': 'corpora/stopwords',
-    }
-    for name, path in resources.items():
-        try:
-            nltk.data.find(path)
-            print(f"✔️ '{name}' ya está disponible.")
-        except LookupError:
-            print(f"⬇️ Descargando '{name}'...")
-            nltk.download(name)
-
-# Llamar a esta función una vez cuando se carga el módulo para asegurar que los recursos estén disponibles
-download_nltk_resources()
+nltk.data.path.append('./nltk_data')
 
 # Palabras vacías (stopwords) globales y puntuación para español
 STOP_WORDS = set(nltk.corpus.stopwords.words('spanish') + list(string.punctuation))
@@ -74,7 +55,7 @@ def generate_expanded_queries(original_query, stop_words=STOP_WORDS, max_results
     """
     # Tokenizar la consulta original y filtrar palabras vacías y tokens no alfabéticos
     tokens = [
-        word.lower() for word in word_tokenize(original_query)
+        word.lower() for word in word_tokenize(original_query, language='spanish')
         if word.lower() not in stop_words and word.isalpha()
     ]
 
@@ -87,7 +68,7 @@ def generate_expanded_queries(original_query, stop_words=STOP_WORDS, max_results
         synonyms_map[token] = list(set(synonyms_map[token])) # Asegurar unicidad
 
     # Preparar palabras para la combinación: palabras originales más sus sinónimos
-    original_query_tokens = word_tokenize(original_query)
+    original_query_tokens = word_tokenize(original_query, language='spanish')
     words_for_combination = []
     for word in original_query_tokens:
         lower = word.lower()

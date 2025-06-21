@@ -4,12 +4,10 @@ from bs4 import BeautifulSoup
 import re
 import string
 import unicodedata
+import nltk
 from nltk.tokenize import word_tokenize
-# Importa la función renombrada desde expanded_queries
-from .expanded_queries import download_nltk_resources 
+nltk.data.path.append('./nltk_data')
 
-# Asegurarse de que los recursos de NLTK estén descargados al inicio
-download_nltk_resources()
 
 # --- Configuración de la API ---
 # URL base para la API del BOE (Boletín Oficial del Estado)
