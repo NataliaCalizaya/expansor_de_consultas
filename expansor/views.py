@@ -1,55 +1,92 @@
 from django.shortcuts import render
+# Importa las funciones renombradas desde los módulos refactorizados
 from .expanded_queries import generate_expanded_queries
-from .consultor import get_identifiers, join_corpus, find_in_corpus, mostrar_resultados
+from .consultor import get_document_identifiers, build_corpus, find_in_corpus, get_highlighted_snippets
 
-def interfaz(request):
-    return render(request, 'expansor/interfaz.html')
+def interface(request):
+    """
+    Renderiza la página de la interfaz de búsqueda inicial.
+    """
+    return render(request, 'expansor/interface.html')
 
-def buscar(request):
+def find(request):
+    """
+    Maneja la solicitud de búsqueda: expande la consulta, recupera documentos,
+    busca dentro de ellos y prepara los resultados para su visualización.
+    """
     if request.method == "POST":
-        count = int(request.POST.get("cantidad", "5"))  # Valor por defecto: 5
-        consulta = request.POST.get("consulta", "")
-        if not consulta:
-            return render(request, "expansor/resultados.html", {"consulta": consulta, "resultados": []})
+        # Obtener 'count' (número de documentos) de los datos POST, por defecto 5
+        document_count = int(request.POST.get("cantidad", "5"))
+        # Obtener la consulta original de los datos POST
+        original_query = request.POST.get("consulta", "")
 
-        # Paso 1: Expandir consulta
-        expandidas_wordnet, expandidas_tesauro = generate_expanded_queries(consulta)
+        # Si no se proporciona una consulta, renderizar la página de resultados con una consulta vacía
+        if not original_query:
+            print("DEBUG: No se proporcionó consulta, renderizando resultados vacíos.")
+            return render(request, "expansor/results.html", {"consulta": original_query, "results": []})
 
-        # Paso 2: Obtener corpus del BOE
-        identifiers = get_identifiers(count)
-        corpus = join_corpus(identifiers)
+        print(f"DEBUG: Consulta recibida: '{original_query}' (Solicitando {document_count} documentos)")
 
-        resultados_documentos = {}
-        sin_resultados = []
+        # Paso 1: Expandir la consulta original usando WordNet y Tesauro
+        wordnet_expansions, thesaurus_expansions = generate_expanded_queries(original_query)
+        print(f"DEBUG: Expansiones WordNet generadas: {wordnet_expansions}")
+        print(f"DEBUG: Expansiones Tesauro generadas: {thesaurus_expansions}")
 
-        encontrados_original = find_in_corpus(corpus, consulta)
-        if encontrados_original:
-            resaltados = mostrar_resultados(encontrados_original, consulta)
-            resultados_documentos[consulta] = resaltados
+        # Paso 2: Obtener identificadores de documentos y construir el corpus del BOE
+        identifiers = get_document_identifiers(document_count)
+        print(f"DEBUG: Identificadores de documentos obtenidos: {identifiers}")
+        corpus = build_corpus(identifiers)
+        print(f"DEBUG: Corpus construido (contiene {len(corpus)} documentos).")
+
+
+        # Inicializar diccionarios/listas para almacenar los resultados
+        document_results_map = {}
+        queries_with_no_results = []
+
+        # Buscar primero la consulta original en el corpus
+        found_original_query_docs = find_in_corpus(corpus, original_query)
+        if found_original_query_docs:
+            highlighted_original_results = get_highlighted_snippets(found_original_query_docs, original_query)
+            document_results_map[original_query] = highlighted_original_results
+            print(f"DEBUG: Consulta original '{original_query}' encontró {len(highlighted_original_results)} resultados.")
         else:
-            sin_resultados.append(consulta)
+            queries_with_no_results.append(original_query)
+            print(f"DEBUG: Consulta original '{original_query}' no encontró resultados.")
+
+
         # Paso 3: Buscar en el corpus para cada consulta expandida y resaltar la coincidencia
-        todas_expandidas = [
-            exp for exp in (expandidas_wordnet + expandidas_tesauro)
-            if exp.lower() != consulta.lower()
+        # Combinar todas las expansiones, asegurando que no haya duplicados y excluyendo la consulta original
+        all_expanded_queries = [
+            exp for exp in (wordnet_expansions + thesaurus_expansions)
+            if exp.lower() != original_query.lower()
         ]
+        print(f"DEBUG: Total de consultas expandidas a buscar (sin la original): {len(all_expanded_queries)}")
 
-        for consulta_exp in todas_expandidas:
-            encontrados = find_in_corpus(corpus, consulta_exp)
-            if encontrados:
-                resaltados = mostrar_resultados(encontrados, consulta_exp)
-                resultados_documentos[consulta_exp] = resaltados
+        for expanded_query in all_expanded_queries:
+            found_expanded_query_docs = find_in_corpus(corpus, expanded_query)
+            if found_expanded_query_docs:
+                highlighted_expanded_results = get_highlighted_snippets(found_expanded_query_docs, expanded_query)
+                document_results_map[expanded_query] = highlighted_expanded_results
+                print(f"DEBUG: Consulta expandida '{expanded_query}' encontró {len(highlighted_expanded_results)} resultados.")
             else:
-                sin_resultados.append(consulta_exp)
+                queries_with_no_results.append(expanded_query)
+                print(f"DEBUG: Consulta expandida '{expanded_query}' no encontró resultados.")
 
-        return render(request, "expansor/resultados.html", {
-            "identifiers": identifiers,
-            "consulta": consulta,
-            "expandidas_wordnet": expandidas_wordnet,
-            "expandidas_tesauro": expandidas_tesauro,
-            "resultados_documentos": resultados_documentos,
-            "sin_resultados": sin_resultados,
+        print(f"\nDEBUG: Contenido final de 'resultados_documentos': {document_results_map}")
+        print(f"DEBUG: Contenido final de 'sin_resultados': {queries_with_no_results}")
+        print(f"DEBUG: Entregando datos al template 'expansor/results.html'")
 
+        # Renderizar la página de resultados con todos los datos recopilados
+        return render(request, "expansor/results.html", {
+            "identifiers": identifiers, # IDs de los documentos incluidos en el corpus
+            "original_query": original_query, # La consulta original
+            "wordnet_expansions": wordnet_expansions, # Expansiones de WordNet
+            "thesaurus_expansions": thesaurus_expansions, # Expansiones de Tesauro
+            "document_results_map": document_results_map, # Diccionario de consultas a sus documentos encontrados/resaltados
+            "queries_with_no_results": queries_with_no_results, # Lista de consultas que no produjeron resultados
         })
 
-    return render(request, "expansor/resultados.html", {"consulta": "", "resultados": []})
+    # Si no es una solicitud POST (ej., solicitud GET inicial a /find),
+    # renderizar la página de resultados con datos vacíos.
+    print("DEBUG: Solicitud GET, renderizando resultados vacíos para la interfaz inicial.")
+    return render(request, "expansor/results.html", {"consulta": "", "results": []})

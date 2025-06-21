@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Resultados</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="max-w-4xl mx-auto px-4 py-10">
+        <h2 class="mb-6 text-3xl font-bold text-orange-700">Resultados de la Búsqueda</h2>
+
+        <div class="mb-8">
+            <h5 class="text-xl font-semibold text-gray-600 mb-2">Corpus compuesto por:</h5>
+            <ul class="bg-white rounded-lg shadow-sm divide-y divide-gray-200">
+                {# Iteramos sobre los identificadores de documentos para mostrar los primeros 5 #}
+                {% for doc_id in identifiers|slice:":5" %}
+                    <li class="p-3 text-gray-700">{{ doc_id }}</li>
+                {% endfor %}
+                {# Si hay más de 5 identificadores, mostramos un indicador de que faltan más #}
+                {% if identifiers|length > 5 %}
+                    <li class="p-3 text-gray-500 italic">[...]</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <div class="mt-10 my-4">
+            {# Enlace para iniciar una nueva búsqueda #}
+            <a href="{% url 'interface' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                <i class="fa-solid fa-arrow-left mr-2"></i>Nueva búsqueda
+            </a>
+        </div>
+        <div class="mb-8">
+            <h5 class="text-xl font-semibold text-gray-600 mb-2">Consulta original:</h5>
+            {# Mostramos la consulta original enviada por el usuario #}
+            <p class="font-bold text-gray-900 text-lg">{{ consulta }}</p>
+        </div>
+
+        {# Mostramos las secciones de consultas expandidas si existen #}
+        {% if wordnet_expansions or thesaurus_expansions %}
+            <div class="mb-8">
+                <h5 class="text-xl font-semibold text-gray-600 mb-2">Consultas expandidas por sinónimos (WordNet):</h5>
+                {% if wordnet_expansions %}
+                    <ul class="bg-white rounded-lg shadow-sm divide-y divide-gray-200 mb-6">
+                        {# Iteramos sobre las expansiones de WordNet #}
+                        {% for expansion in wordnet_expansions %}
+                            <li class="p-3 text-gray-700"><i class="fa-solid fa-angles-right mr-2"></i>{{ expansion }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-gray-500 italic">No se generaron expansiones por WordNet.</p>
+                {% endif %}
+
+                <h5 class="text-xl font-semibold text-gray-600 mb-2">Consultas expandidas por tesauro (UNESCO):</h5>
+                {% if thesaurus_expansions %}
+                    <ul class="bg-white rounded-lg shadow-sm divide-y divide-gray-200">
+                        {# Iteramos sobre las expansiones del tesauro #}
+                        {% for expansion in thesaurus_expansions %}
+                            <li class="p-3 text-gray-700"><i class="fa-solid fa-angles-right mr-2"></i>{{ expansion }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-gray-500 italic">No se generaron expansiones por tesauro.</p>
+                {% endif %}
+            </div>
+        {% else %}
+            <p class="text-yellow-600 font-bold text-lg">No se generaron consultas expandidas.</p>
+        {% endif %}
+
+        {# Sección para mostrar las consultas que no encontraron resultados #}
+        {% if queries_with_no_results %}
+        <div class="my-4 text-sm text-gray-500">
+            <p class="mb-2 italic">No se han encontrado coincidencias en el corpus para las siguientes consultas:</p>
+            <ul class="list-disc list-inside">
+                {% for no_match_query in queries_with_no_results %}
+                    <li>{{ no_match_query }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {# Sección principal para mostrar los documentos y extractos resaltados #}
+        {% if document_results_map %}
+            {# Iteramos sobre cada consulta (original o expandida) y sus documentos resultantes #}
+            {% for query_term, documents_found in document_results_map.items %}
+                <div class="bg-white rounded-lg shadow-md mb-8">
+                    <div class="p-4 {% if query_term == consulta %}bg-green-700{% else %}bg-orange-700{% endif %} text-white font-semibold rounded-t-lg">
+                        {# Diferenciamos si es el resultado de la consulta original o una expandida #}
+                        {% if query_term == consulta %}
+                            Resultado para consulta original: "{{ query_term }}"
+                        {% else %}
+                            Consulta expandida: "{{ query_term }}"
+                        {% endif %}
+                    </div>
+                    <div class="p-6">
+                        {% if documents_found %}
+                            <ul class="divide-y divide-gray-200">
+                                {# Iteramos sobre cada documento encontrado y su texto resaltado #}
+                                {% for doc_id, highlighted_text in documents_found.items %}
+                                    <li class="py-4">
+                                        <p class="mb-1"><strong>Documento ID:</strong> <span class="font-medium">{{ doc_id }}</span></p>
+                                        <p class="mb-2">
+                                            <strong>URL:</strong>
+                                            <a href="https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/{{ doc_id }}/texto" target="_blank" class="text-blue-600 hover:underline">
+                                                Ver texto completo
+                                            </a>
+                                        </p>
+                                        <p><strong>Extracto:</strong> {{ highlighted_text|safe }}</p>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-gray-500 italic">No se encontraron documentos para esta consulta.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-yellow-600 font-bold text-lg">No se encontraron documentos relevantes para las consultas expandidas.</p>
+        {% endif %}
+
+        <div class="mt-10">
+            {# Enlace para iniciar una nueva búsqueda al final de la página #}
+            <a href="{% url 'interface' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                <i class="fa-solid fa-arrow-left mr-2"></i>Nueva búsqueda
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>

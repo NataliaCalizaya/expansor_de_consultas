@@ -4,94 +4,115 @@ from nltk.tokenize import word_tokenize
 import string
 from itertools import product
 from collections import defaultdict
-from .tesauro_expanded import consultar_tesauro_unesco
+# Importa la función renombrada desde el módulo tesauro_expanded
+from .tesauro_expanded import query_unesco_thesaurus 
 
-# Descargar recursos necesarios de NLTK (solo la primera vez)
-def download_nltk():
-    recursos = {
+# --- Gestión de recursos NLTK ---
+
+def download_nltk_resources():
+    """Descarga los recursos esenciales de NLTK (punkt, wordnet, stopwords) si no están ya presentes."""
+    resources = {
         'punkt': 'tokenizers/punkt',
         'wordnet': 'corpora/wordnet',
         'stopwords': 'corpora/stopwords',
     }
-    for nombre, ruta in recursos.items():
+    for name, path in resources.items():
         try:
-            nltk.data.find(ruta)
-            print(f"✔️ '{nombre}' ya está disponible.")
+            nltk.data.find(path)
+            print(f"✔️ '{name}' ya está disponible.")
         except LookupError:
-            print(f"⬇️ Descargando '{nombre}'...")
-            nltk.download(nombre)
+            print(f"⬇️ Descargando '{name}'...")
+            nltk.download(name)
 
-download_nltk()
+# Llamar a esta función una vez cuando se carga el módulo para asegurar que los recursos estén disponibles
+download_nltk_resources()
 
-# Stopwords y puntuación
+# Palabras vacías (stopwords) globales y puntuación para español
 STOP_WORDS = set(nltk.corpus.stopwords.words('spanish') + list(string.punctuation))
 
+# --- Expansión con WordNet ---
 
-def expand_with_synonyms(word):
-    """Obtiene sinónimos usando WordNet para una palabra."""
+def get_wordnet_synonyms(word):
+    """
+    Obtiene sinónimos para una palabra dada utilizando el corpus de WordNet (español).
+    Excluye la palabra original y los sinónimos de varias palabras.
+    """
     synonyms = set()
     for syn in wordnet.synsets(word, lang='spa'):
         for lemma in syn.lemmas('spa'):
             synonym = lemma.name().replace('_', ' ').lower()
+            # Asegurarse de que el sinónimo no sea la palabra original y sea de una sola palabra
             if synonym != word and ' ' not in synonym:
                 synonyms.add(synonym)
     return list(synonyms)
 
+# --- Expansión con Tesauro (usando el módulo externo) ---
 
-def expand_with_tesaurus(query, max_results=15):
-    """Devuelve hasta `max_results` frases del tesauro UNESCO relacionadas con la consulta."""
-    tesauro_phrases = []
+def get_thesaurus_phrases(query, max_results=15):
+    """
+    Obtiene hasta `max_results` frases relacionadas del tesauro de la UNESCO
+    para una consulta dada, llamando a una función externa.
+    """
+    thesaurus_phrases = []
     try:
-        resultados = consultar_tesauro_unesco(query.lower())
-        for seccion in resultados:
-            tesauro_phrases.extend(resultados[seccion])
+        # Llama a la función del módulo tesauro_expanded.py
+        results_from_thesaurus = query_unesco_thesaurus(query.lower()) 
+        for section_name in results_from_thesaurus:
+            thesaurus_phrases.extend(results_from_thesaurus[section_name])
     except Exception as e:
         print(f"❗ Error al consultar el tesauro para la frase '{query}': {e}")
 
-    return list(set(tesauro_phrases))[:max_results]
+    # Devolver frases únicas, limitadas por max_results
+    return list(set(thesaurus_phrases))[:max_results]
 
-
+# --- Lógica principal de expansión de consultas ---
 
 def generate_expanded_queries(original_query, stop_words=STOP_WORDS, max_results=15):
     """
-    Genera combinaciones de sinónimos por palabra (WordNet),
-    y agrega frases relacionadas por tesauro (UNESCO) sin combinarlas.
+    Genera consultas expandidas combinando sinónimos de WordNet para palabras individuales
+    y añadiendo frases adicionales del tesauro de la UNESCO.
     """
-    # Tokenizar y filtrar stopwords
+    # Tokenizar la consulta original y filtrar palabras vacías y tokens no alfabéticos
     tokens = [
         word.lower() for word in word_tokenize(original_query, language='spanish')
         if word.lower() not in stop_words and word.isalpha()
     ]
 
-    synonyms_dict = defaultdict(list)
+    # Mapear cada token significativo a su lista de sinónimos de WordNet
+    synonyms_map = defaultdict(list)
     for token in tokens:
-        wn_synonyms = expand_with_synonyms(token)
-        if wn_synonyms:
-            synonyms_dict[token].extend(wn_synonyms)
-        synonyms_dict[token] = list(set(synonyms_dict[token]))
+        wordnet_synonyms = get_wordnet_synonyms(token)
+        if wordnet_synonyms:
+            synonyms_map[token].extend(wordnet_synonyms)
+        synonyms_map[token] = list(set(synonyms_map[token])) # Asegurar unicidad
 
-    # Armar combinaciones
-    original_tokens = word_tokenize(original_query, language='spanish')
-    words_to_expand = []
-    for word in original_tokens:
+    # Preparar palabras para la combinación: palabras originales más sus sinónimos
+    original_query_tokens = word_tokenize(original_query, language='spanish')
+    words_for_combination = []
+    for word in original_query_tokens:
         lower = word.lower()
-        if lower in synonyms_dict:
-            syns = synonyms_dict[lower]
-            words_to_expand.append([word] + syns)
+        if lower in synonyms_map:
+            # Incluir la palabra original y sus sinónimos para la combinación
+            syns = synonyms_map[lower]
+            words_for_combination.append([word] + syns)
         else:
-            words_to_expand.append([word])
+            # Si no hay sinónimos, solo incluir la palabra original
+            words_for_combination.append([word])
 
-    synonym_combinations = list(product(*words_to_expand))
-    expanded_queries = set()
+    # Generar todas las combinaciones posibles de palabras y sus sinónimos
+    synonym_combinations = list(product(*words_for_combination))
+    expanded_queries_wordnet = set()
 
+    # Convertir combinaciones en frases y añadir al conjunto
     for combo in synonym_combinations:
         phrase = ' '.join(combo)
-        if phrase.lower() != original_query.lower():
-            expanded_queries.add(phrase)
-        if len(expanded_queries) >= max_results:
+        if phrase.lower() != original_query.lower(): # Excluir la consulta original
+            expanded_queries_wordnet.add(phrase)
+        if len(expanded_queries_wordnet) >= max_results:
             break
 
-    tesauro_expansions = expand_with_tesaurus(original_query)
+    # Obtener expansiones adicionales del tesauro de la UNESCO
+    thesaurus_expansions = get_thesaurus_phrases(original_query)
 
-    return list(expanded_queries)[:max_results], tesauro_expansions
- 
+    # Devolver expansiones de WordNet (limitadas) y expansiones de Tesauro
+    return list(expanded_queries_wordnet)[:max_results], thesaurus_expansions

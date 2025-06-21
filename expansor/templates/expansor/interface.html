@@ -14,7 +14,7 @@
                     <h4 class="text-xl font-semibold mb-0">Buscar en el corpus de la legislacion-consolidada</h4>
                 </div>
                 <div class="p-6">
-                    <form method="POST" action="{% url 'buscar' %}" class="space-y-6">
+                    <form method="POST" action="{% url 'find' %}" class="space-y-6">
                         {% csrf_token %}
                         <div>
                             <label for="consulta" class="block text-sm font-medium text-gray-700 mb-1">Ingrese su consulta</label>
