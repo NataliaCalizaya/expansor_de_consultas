@@ -23,15 +23,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-baj_akofr#b##zy&ya#klw9t$36dwt56=qo^v@3$$aat=n_b8r'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# import os
+import os
 
-# DEBUG = False
-DEBUG = True
+DEBUG = False
+#DEBUG = True
 
 ALLOWED_HOSTS = ['expansor.onrender.com', '127.0.0.1', 'localhost']  # o simplemente ['*'] durante pruebas
 
 # Configuración para archivos estáticos
-# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 
 # Application definition
@@ -44,6 +44,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'expansor',
+]
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
 ]
 
 MIDDLEWARE = [
