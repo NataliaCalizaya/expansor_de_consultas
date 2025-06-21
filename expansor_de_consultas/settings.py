@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-baj_akofr#b##zy&ya#klw9t$36dwt56=qo^v@3$$aat=n_b8r'
+SECRET_KEY = os.environ.get("SECRET_KEY", "clave-super-insegura-por-defecto")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 import os
@@ -45,9 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'expansor',
 ]
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
-]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -60,6 +58,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'expansor_de_consultas.urls'
+WSGI_APPLICATION = 'expansor_de_consultas.wsgi.application'
 
 TEMPLATES = [
     {
@@ -77,7 +76,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'expansor_de_consultas.wsgi.application'
+
 
 
 # Database
