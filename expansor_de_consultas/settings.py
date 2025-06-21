@@ -25,10 +25,10 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "clave-super-insegura-por-defecto")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
-DEBUG = False
-#DEBUG = True
+#DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['expansor.onrender.com', '127.0.0.1', 'localhost']  # o simplemente ['*'] durante pruebas
+ALLOWED_HOSTS = ['expansor-de-consultas.onrender.com', '127.0.0.1', 'localhost']  # o simplemente ['*'] durante pruebas
 
 # Configuración para archivos estáticos
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
