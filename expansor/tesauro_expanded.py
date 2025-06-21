@@ -7,7 +7,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 from time import sleep
 import unicodedata
-
+from selenium.webdriver.chrome.options import Options
 # --- Funciones de utilidad ---
 
 def normalize_text(text):
@@ -25,14 +25,17 @@ def query_unesco_thesaurus(term):
     Utiliza Selenium para navegar por el sitio web dinámico y BeautifulSoup para analizar el contenido.
     """
     # Configurar las opciones de Chrome para la navegación sin interfaz gráfica (headless)
-    options = webdriver.ChromeOptions()
+    #options = webdriver.ChromeOptions()
+    options = Options()
+    options.binary_location = "/usr/bin/chromium"
     options.add_argument("--headless")
     options.add_argument("--no-sandbox") # Necesario para algunos entornos (ej. Docker)
     options.add_argument("--disable-dev-shm-usage") # Supera problemas de recursos limitados en algunos entornos
-
+   
     # Inicializar ChromeDriver
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
+    #driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    service = Service("/usr/bin/chromedriver")
+    driver = webdriver.Chrome(service=service, options=options)
     # Formatear el término para la URL y construir la URL de búsqueda
     formatted_term = term.replace(' ', '+')
     url = f"https://vocabularies.unesco.org/browser/thesaurus/es/search?clang=es&q={formatted_term}"
